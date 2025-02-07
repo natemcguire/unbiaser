@@ -1,0 +1,3 @@
+yes and I want you to:
+
+1. never half way code things. If you know the build would fail after an update, continue to update the code so it would work. You seem to stop and go step by step when I just want you to think in complete features - so you wouldn't implement a background job without making the database too. That's junior developer behavior 

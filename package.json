@@ -1,0 +1,51 @@
+{
+  "name": "unbiaser",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "ext:build": "node scripts/build-extension.ts",
+    "ext:dev": "node scripts/dev-extension.ts",
+    "ext:package": "npm run ext:build && cd dist && zip -r ../public/extension.zip extension/",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/supabase-js": "^2.48.1",
+    "@types/chrome": "^0.0.260",
+    "cheerio": "^1.0.0-rc.12",
+    "date-fns": "^3.3.1",
+    "geist": "^1.3.1",
+    "lucide-react": "^0.474.0",
+    "nanoid": "^5.0.6",
+    "next": "^14.1.3",
+    "openai": "^4.28.4",
+    "puppeteer": "^22.15.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sharp": "^0.33.2",
+    "zip-a-folder": "^3.1.8"
+  },
+  "devDependencies": {
+    "@types/archiver": "^6.0.3",
+    "@types/fs-extra": "^11.0.4",
+    "@types/lodash": "^4.14.202",
+    "@types/node": "^20.11.25",
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@types/sharp": "^0.32.0",
+    "archiver": "^7.0.1",
+    "autoprefixer": "^10.4.18",
+    "chokidar": "^3.6.0",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.1.3",
+    "fs-extra": "^11.3.0",
+    "lodash": "^4.17.21",
+    "postcss": "^8.4.35",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5.4.2"
+  }
+}

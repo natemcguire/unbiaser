@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "Media Bias Checker",
+  "version": "1.0",
+  "description": "Analyze media bias in articles",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://*.ngrok-free.app/*",
+    "<all_urls>"
+  ],
+  "action": {
+    "default_title": "Analyze Article"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+} 
