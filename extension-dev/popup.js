@@ -1,4 +1,4 @@
-const API_URL = 'https://c096da6f702a.ngrok.app'; // Your ngrok URL
+const API_URL = 'https://mid-iqhuy6n8l-nate-mcguires-projects.vercel.app'; // Vercel URL
 
 document.addEventListener('DOMContentLoaded', () => {
   const button = document.getElementById('analyze');
@@ -33,7 +33,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const analysisResponse = await fetch(`${API_URL}/api/analyze/queue`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Origin': chrome.runtime.getURL('')
+        },
         body: JSON.stringify({
           url: tab.url,
           title: tab.title,
@@ -42,12 +45,13 @@ document.addEventListener('DOMContentLoaded', () => {
         })
       });
 
-      const data = await analysisResponse.json();
-      
       if (!analysisResponse.ok) {
-        throw new Error(data.error || 'Failed to start analysis');
+        const errorData = await analysisResponse.json();
+        throw new Error(errorData.error || `Server error: ${analysisResponse.status}`);
       }
 
+      const data = await analysisResponse.json();
+      saveState(data.jobId);
       showStatus(data.jobId);
 
     } catch (error) {
@@ -84,14 +88,17 @@ function saveState(jobId) {
 
 // Check for interrupted analysis on popup open
 async function checkInterruptedAnalysis() {
-  const { lastAnalysis } = await chrome.storage.local.get('lastAnalysis');
-  
-  if (lastAnalysis && lastAnalysis.url === window.location.href) {
-    // If analysis was started in last 5 minutes
-    if (Date.now() - lastAnalysis.timestamp < 5 * 60 * 1000) {
-      // Resume checking status
-      checkStatus(lastAnalysis.jobId);
+  try {
+    const { lastAnalysis } = await chrome.storage.local.get('lastAnalysis');
+    
+    if (lastAnalysis && lastAnalysis.url === window.location.href) {
+      // If analysis was started in last 5 minutes
+      if (Date.now() - lastAnalysis.timestamp < 5 * 60 * 1000) {
+        showStatus(lastAnalysis.jobId);
+      }
     }
+  } catch (error) {
+    console.error('Failed to check analysis state:', error);
   }
 }
 

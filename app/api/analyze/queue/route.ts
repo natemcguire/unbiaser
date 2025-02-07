@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { nanoid } from 'nanoid';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 
 export async function OPTIONS(request: NextRequest) {

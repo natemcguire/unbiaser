@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface BiasCalloutProps {
   content: string;
@@ -21,38 +21,42 @@ export default function BiasCallout({ content, bias, jobId }: BiasCalloutProps) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const analyzeWithGrok = async () => {
-      try {
-        const response = await fetch('/api/analyze/grok/callout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content, bias, jobId })
-        });
-        
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Analysis failed');
-        
-        // Clean up markdown formatting if present
-        let cleanJson = data.analysis;
-        if (cleanJson.startsWith('```')) {
-          cleanJson = cleanJson
-            .replace(/```json\n/, '')  // Remove opening ```json
-            .replace(/\n```$/, '')     // Remove closing ```
-            .trim();
-        }
-        
-        setAnalysis(cleanJson);
-      } catch (error) {
-        console.error('Grok analysis failed:', error);
-        setError(error instanceof Error ? error.message : 'Analysis failed');
-      } finally {
-        setLoading(false);
+  // Move analyzeWithGrok outside useEffect and memoize it
+  const analyzeWithGrok = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/analyze/grok/callout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content, bias, jobId })
+      });
+      
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Analysis failed');
+      
+      // Clean up markdown formatting if present
+      let cleanJson = data.analysis;
+      if (cleanJson.startsWith('```')) {
+        cleanJson = cleanJson
+          .replace(/```json\n/, '')  // Remove opening ```json
+          .replace(/\n```$/, '')     // Remove closing ```
+          .trim();
       }
-    };
-
-    analyzeWithGrok();
+      
+      setAnalysis(cleanJson);
+    } catch (error) {
+      console.error('Grok analysis failed:', error);
+      setError(error instanceof Error ? error.message : 'Analysis failed');
+    } finally {
+      setLoading(false);
+    }
   }, [content, bias, jobId]);
+
+  // Call analyzeWithGrok on mount
+  useEffect(() => {
+    analyzeWithGrok();
+  }, [analyzeWithGrok]);
 
   return (
     <section className="bg-white border border-[#2c363f]/20 p-6 shadow-md">
@@ -75,11 +79,7 @@ export default function BiasCallout({ content, bias, jobId }: BiasCalloutProps) 
         <div className="text-center py-8">
           <p className="text-red-600 mb-4">{error}</p>
           <button
-            onClick={() => {
-              setLoading(true);
-              setError(null);
-              analyzeWithGrok();
-            }}
+            onClick={analyzeWithGrok}
             className="px-4 py-2 bg-[#2c363f] text-white hover:bg-[#2c363f]/90"
           >
             Try Again

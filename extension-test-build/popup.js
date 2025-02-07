@@ -69,4 +69,31 @@ function showStatus(jobId) {
       </a>
     </div>
   `;
-} 
+}
+
+// Add state persistence
+function saveState(jobId) {
+  chrome.storage.local.set({ 
+    lastAnalysis: {
+      jobId,
+      url: window.location.href,
+      timestamp: Date.now()
+    }
+  });
+}
+
+// Check for interrupted analysis on popup open
+async function checkInterruptedAnalysis() {
+  const { lastAnalysis } = await chrome.storage.local.get('lastAnalysis');
+  
+  if (lastAnalysis && lastAnalysis.url === window.location.href) {
+    // If analysis was started in last 5 minutes
+    if (Date.now() - lastAnalysis.timestamp < 5 * 60 * 1000) {
+      // Resume checking status
+      checkStatus(lastAnalysis.jobId);
+    }
+  }
+}
+
+// Call on popup open
+checkInterruptedAnalysis(); 
