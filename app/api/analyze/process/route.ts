@@ -159,44 +159,44 @@ export async function POST(request: Request) {
     // Generate alternative
     await updateJobStatus(jobId, 'processing', 0.8);
     logger.info('Generating alternative', { jobId });
-    const alternative = await generateAlternative(summary.summary, {
-      x: bias.biasX,
-      y: bias.biasY
-    }, jobId);
+    const alternativePromises = await Promise.all([
+      generateAlternative(summary.summary, {
+        x: bias.biasX,
+        y: bias.biasY
+      }, jobId),
+      generateAlternative(summary.summary, {
+        x: -bias.biasX,
+        y: -bias.biasY
+      }, jobId)
+    ]);
 
-    // Save results
-    const result = {
-      analysis: {
-        summary: summary.summary,
-        keyPoints: summary.keyPoints,
-        mainArguments: summary.mainArguments,
-        bias: {
-          biasX: bias.biasX,
-          biasY: bias.biasY,
-          finalScore: bias.finalScore,
-          evidence: bias.evidence
-        },
-      },
-      counterpoints: {
-        alternativeArticle: {
+    const alternatives = await Promise.all(
+      alternativePromises.map(async (promise) => {
+        const alternative = await promise;
+        return {
           headline: alternative.headline,
           content: alternative.content,
-          author: alternative.author,
+          author: "Eric Arthur Blair",
           sources: alternative.sources,
           bias: alternative.bias
-        }
-      }
-    };
+        };
+      })
+    );
 
-    await updateJobStatus(jobId, 'completed', 1);
-    
-    await supabase
+    // Update job with alternatives
+    const { error: updateError } = await supabase
       .from('analysis_jobs')
-      .update({ 
-        result,
-        completed_at: new Date().toISOString()
+      .update({
+        alternatives,
+        status: 'completed',
+        updated_at: new Date().toISOString()
       })
       .eq('id', jobId);
+
+    if (updateError) {
+      logger.error('Failed to update job', { error: updateError, jobId });
+      throw updateError;
+    }
 
     logger.info('Analysis complete', { jobId });
 
@@ -330,6 +330,10 @@ interface AlternativeResponse {
   headline: string;
   content: string;
   sources: string[];
+  bias: {
+    x: number;
+    y: number;
+  };
 }
 
 // 3. Analyze bias separately
