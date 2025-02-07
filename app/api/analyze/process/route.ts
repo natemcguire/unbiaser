@@ -67,8 +67,45 @@ async function cleanupStaleJobs() {
   }
 }
 
-// Helper function to create a log entry
-async function createLog(jobId: string, level: string, message: string, metadata?: any) {
+// Add type for OpenAI response
+interface OpenAIResponse {
+  choices: [{
+    message: {
+      content: string;
+    };
+  }];
+  usage?: {
+    total_tokens: number;
+    prompt_tokens: number;
+    completion_tokens: number;
+  };
+  model: string;
+}
+
+// Add type for job data
+interface AnalysisJob {
+  id: string;
+  source_html: string;
+  screenshot?: string;
+  status: string;
+  url: string;
+  title?: string;
+}
+
+// Add type for log entry
+interface LogEntry {
+  job_id: string;
+  level: 'info' | 'error' | 'warn';
+  message: string;
+  metadata?: Record<string, unknown>;
+}
+
+async function createLog(
+  jobId: string, 
+  level: LogEntry['level'], 
+  message: string, 
+  metadata?: LogEntry['metadata']
+): Promise<void> {
   await supabase
     .from('analysis_logs')
     .insert({
@@ -79,7 +116,7 @@ async function createLog(jobId: string, level: string, message: string, metadata
     });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: Request): Promise<Response> {
   const { jobId } = await request.json();
 
   try {
@@ -204,7 +241,8 @@ export async function POST(request: Request) {
 
     return Response.json({ success: true });
 
-  } catch (error) {
+  } catch (err) {
+    const error = err as Error; // Type assertion
     logger.error('Processing failed', { error, jobId });
     await updateJobStatus(jobId, 'failed', undefined, error.message);
     await createLog(jobId, 'error', 'Analysis failed', { error });
@@ -217,7 +255,7 @@ async function updateJobStatus(
   status: string, 
   progress?: number, 
   error?: string
-) {
+): Promise<void> {
   await supabase
     .from('analysis_jobs')
     .update({
@@ -304,15 +342,18 @@ Format as JSON:
   }
 }
 
-function parseAndValidateResponse(response: any): SummaryResponse {
-  const parsed = JSON.parse(response.choices[0].message.content) as SummaryResponse;
-  
-  // Validate the response has the expected shape
-  if (!parsed.summary || !Array.isArray(parsed.keyPoints) || !Array.isArray(parsed.mainArguments)) {
-    throw new Error('Invalid response format from OpenAI');
-  }
+function parseAndValidateResponse(response: OpenAIResponse): SummaryResponse {
+  try {
+    const parsed = JSON.parse(response.choices[0].message.content) as SummaryResponse;
+    
+    if (!parsed.summary || !Array.isArray(parsed.keyPoints) || !Array.isArray(parsed.mainArguments)) {
+      throw new Error('Invalid response format from OpenAI');
+    }
 
-  return parsed;
+    return parsed;
+  } catch (error) {
+    throw new Error(`Failed to parse OpenAI response: ${(error as Error).message}`);
+  }
 }
 
 interface BiasResponse {
